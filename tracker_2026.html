@@ -622,34 +622,45 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 // ══════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════
+// Comportamientos en orden por categoría (desde Q3 en adelante)
+// Categorías: finance | mari | mind | work | lifestyle | health | family
 const BEHAVIOURS_FULL = [
-  "On top of financial markets, identify opportunities and avoid risks",
-  "Quality time con Mari, hablar de nosotros, amistad, mastermind :-)",
-  "S,L&R: contacto íntimo, romance, sensualidad",
-  "Momentos de disfrute (música, relax, baile, atención plena)",
-  "Calls de Lifebook, Abraham o Maestros (inspiración y desafío)",
-  "Dejarme guiar + INTUICIÓN = Sincronicidades en mi vida cotidiana",
-  "Cerrar la semana con todas mis rocas avanzadas :-) EFECTIVIDAD",
-  "Ayuda a Mari (bailar, masajes, sus bloques, sus espacios)",
-  "Conectar To do List con Metas de MP y LP",
-  "Conectar con mi Vision (Visulizar, Sentir, Mis Recuerdos del Futuro)",
-  "Una Venta al menos o avance concreto en creación mat. Marketing",
-  "Comer, entrenar, moverme y descansar de acuerdo al Plan :)"
+  /* finance   */ "On top of financial markets — identify opportunities and avoid risks",
+  /* mari      */ "Quality time con Mari — hablar de nosotros, amistad, mastermind :-)",
+  /* mari      */ "S,L&R: contacto íntimo, romance, sensualidad",
+  /* mari      */ "Ayuda a Mari — bailar, masajes, sus bloques, sus espacios",
+  /* mind      */ "Calls de Lifebook, Abraham o Maestros — inspiración y desafío",
+  /* mind      */ "Dejarme guiar + INTUICIÓN = Sincronicidades en mi vida cotidiana",
+  /* mind      */ "Conectar con mi Visión — Visualizar, Sentir, Mis Recuerdos del Futuro",
+  /* work      */ "Cerrar la semana con todas mis rocas avanzadas :-) EFECTIVIDAD",
+  /* work      */ "Conectar To do List con Metas de MP y LP",
+  /* work      */ "Una Venta al menos o avance concreto en creación mat. Marketing",
+  /* lifestyle */ "Momentos de disfrute — música, relax, baile, atención plena",
+  /* health    */ "Comer, entrenar, moverme y descansar de acuerdo al Plan :)",
+  /* family    */ "Estar atento a Nachi — acompañamiento, llamadas, seguimiento"
 ];
 const BEHAVIOURS_SHORT = [
   "On top de mercados financieros",
   "Quality time con Mari",
   "S,L&R: contacto íntimo, romance",
-  "Momentos de disfrute",
+  "Ayuda a Mari",
   "Calls Lifebook / Abraham / Maestros",
   "Intuición + Sincronicidades",
-  "Cerrar semana con rocas avanzadas",
-  "Ayuda a Mari",
-  "To do List conectado con Metas",
   "Conectar con mi Visión",
+  "Cerrar semana con rocas avanzadas",
+  "To do List conectado con Metas",
   "Venta o avance en Marketing",
-  "Comer, entrenar y descansar"
+  "Momentos de disfrute",
+  "Comer, entrenar y descansar",
+  "Estar atento a Nachi"
 ];
+const BEHAVIOURS_CAT = [
+  "finance","mari","mari","mari","mind","mind","mind","work","work","work","lifestyle","health","family"
+];
+const CAT_COLORS_MAP = {
+  finance:"#2D6A4F", mari:"#C0507A", mind:"#4A3F8F",
+  work:"#8B2E2E", lifestyle:"#E08030", health:"#3A7A5A", family:"#2E7A8B"
+};
 const WEEK_DATES = {
   1:"4 ene",2:"11 ene",3:"18 ene",4:"25 ene",5:"1 feb",6:"8 feb",7:"15 feb",8:"22 feb",
   9:"1 mar",10:"8 mar",11:"15 mar",12:"22 mar",13:"29 mar",14:"5 abr",15:"12 abr",16:"19 abr",
@@ -944,7 +955,12 @@ function renderChecks() {
     const row = document.createElement('div');
     row.className = 'check-row' + (currentChecks[i] ? ' checked' : '');
     row.onclick = () => toggle(i);
-    row.innerHTML = `<div class="check-box"><span class="check-mark">✓</span></div><div class="check-label">${b}</div>`;
+    const cat = BEHAVIOURS_CAT[i];
+    const catColor = CAT_COLORS_MAP[cat] || '#888';
+    row.innerHTML = `
+      <div style="width:4px;height:36px;border-radius:2px;background:${catColor};flex-shrink:0;margin:-2px 0"></div>
+      <div class="check-box"><span class="check-mark">✓</span></div>
+      <div class="check-label">${b}</div>`;
     c.appendChild(row);
   });
 }
@@ -978,7 +994,7 @@ async function saveWeek() {
 function weekAvg(w) {
   const wd = db.weeks[w];
   if (!wd) return null;
-  const vals = wd.checks.filter(v => v !== null);
+  const vals = wd.checks.filter(v => v !== null && v !== undefined);
   return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
 }
 function scoreColor(v) { return v >= 0.8 ? 'var(--green)' : v >= 0.65 ? 'var(--amber)' : 'var(--red)'; }
@@ -1032,6 +1048,7 @@ function renderBars(sortedB, label) {
     <div class="section-title">${label}</div>
     ${sortedB.map(({p,i})=>`
     <div class="b-row">
+      <div style="width:4px;height:28px;border-radius:2px;background:${CAT_COLORS_MAP[BEHAVIOURS_CAT[i]]||'#888'};flex-shrink:0"></div>
       <div class="b-name">${BEHAVIOURS_SHORT[i]}</div>
       <div class="b-bar-wrap"><div class="b-bar-fill" style="width:${Math.round(p*100)}%;background:${scoreColor(p)}"></div></div>
       <div class="b-pct" style="color:${scoreColor(p)}">${Math.round(p*100)}%</div>
@@ -1093,7 +1110,7 @@ function renderQ(q) {
   }
   const avgsArr = weeksWithData.map(w => weekAvg(w)).filter(v => v !== null);
   const bPcts = BEHAVIOURS_SHORT.map((_,bi)=>{
-    const vals = weeksWithData.map(w=>db.weeks[w]?db.weeks[w].checks[bi]:null).filter(v=>v!==null);
+    const vals = weeksWithData.map(w=>db.weeks[w]?db.weeks[w].checks[bi]:null).filter(v=>v!==null && v!==undefined);
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
   });
   const overall = avgsArr.reduce((a,b)=>a+b,0)/avgsArr.length;
@@ -1148,7 +1165,7 @@ function renderYTD() {
   }
   const avgsArr = allWeeks.map(w=>weekAvg(w)).filter(v=>v!==null);
   const bPcts = BEHAVIOURS_SHORT.map((_,bi)=>{
-    const vals = allWeeks.map(w=>db.weeks[w]?db.weeks[w].checks[bi]:null).filter(v=>v!==null);
+    const vals = allWeeks.map(w=>db.weeks[w]?db.weeks[w].checks[bi]:null).filter(v=>v!==null && v!==undefined);
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
   });
   const overall = avgsArr.reduce((a,b)=>a+b,0)/avgsArr.length;
